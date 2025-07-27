@@ -1,0 +1,39 @@
+QWidget, QFrame {
+    background-color: #3f3f3f;  
+    color: #f0f0f0;
+}
+QPushButton {
+    background-color: #111111; 
+    color: #f0f0f0;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+QPushButton#exitButton {
+    background-color: red;      
+    color: white;
+    font-weight: bold;
+}
+QLineEdit {
+    background-color: #222222;
+    color: #f0f0f0;
+}
+QTabBar::tab {
+    background: #444444;
+    color: #f0f0f0;
+    border: 1px solid #333;
+    min-width: 100px;
+    min-height: 24px;
+    padding: 4px 12px;
+}
+QTabBar::tab:selected {
+    background: #222222;
+    color: #ffffff;
+}
+QTabWidget::pane {
+    background: #444444;
+}
+QLineEdit {
+    background-color: #333333;
+    color: #f0f0f0;
+}
