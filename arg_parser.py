@@ -55,7 +55,7 @@ def get_config() -> argparse.Namespace:
                         default='passthrough', help="Operation mode: playback, record, or passthrough (default: passthrough)")
     parser.add_argument('--log_level', type=str, default='INFO',
                         help='Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)')
-    parser.add_argument("--save_recording", action="store_true", help="Save recording in passthrough/record mode")
+    parser.add_argument("--save_recording", action="store_true", help="Save recording in passthrough mode")
     parser.add_argument('--in_ch', type=int, default=None,
                         help='Number of channels to use for input (default: device max)')
     parser.add_argument('--out_ch', type=int, default=None,

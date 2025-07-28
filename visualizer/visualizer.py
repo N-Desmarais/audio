@@ -1,10 +1,10 @@
 from multiprocessing import Event, Process, Queue
 from typing import Any, Optional, Tuple
-
-from PyQt5.QtCore import QFile, QIODevice, QTextStream
 from pyqtgraph.Qt import QtWidgets  
 
-from visualizer.visualizer_widget import VisualizerGUI
+from message_bus import MessageBus
+import message_bus
+from visualizer.visualizer_gui import VisualizerGUI
 
 class VisualizerApp:
     """
@@ -15,7 +15,8 @@ class VisualizerApp:
         sr: int,
         stop_event: Any,
         waveform_queue: Queue,
-        audio_stop_event: Optional[Any] = None
+        audio_stop_event: Optional[Any] = None,
+        message_bus: message_bus = None
     ) -> None:
         """
         Initialize the VisualizerApp.
@@ -28,7 +29,7 @@ class VisualizerApp:
         """
         self.app = QtWidgets.QApplication([])
         self.load_global_styles()
-        self.widget = VisualizerGUI(sr, stop_event, waveform_queue, audio_stop_event)
+        self.widget = VisualizerGUI(sr, stop_event, waveform_queue, audio_stop_event, message_bus=message_bus)
         self.widget.setWindowTitle("Live Audio Visualizer")
         self.widget.show()
         self.widget.raise_()  # Bring window to front
@@ -44,7 +45,7 @@ class VisualizerApp:
         """
         Load global stylesheet for the application.
         """
-        stylesheet_path = r'visualizer\style.qss'
+        stylesheet_path = 'visualizer\style\global_style.qss'
         with open(stylesheet_path,"r") as fh:
             self.app.setStyleSheet(fh.read())
 
@@ -53,7 +54,8 @@ def visualizer_process_with_ready(
     stop_event: Any,
     waveform_queue: Queue,
     audio_stop_event: Optional[Any],
-    window_ready: Any
+    window_ready: Any,
+    message_bus: MessageBus
 ) -> None:
     """
     Run the visualizer process and signal when the window is ready.
@@ -65,7 +67,7 @@ def visualizer_process_with_ready(
         audio_stop_event (Optional[Any]): Event to signal audio shutdown.
         window_ready (Any): Event to signal when the window is ready.
     """
-    app = VisualizerApp(sr, stop_event, waveform_queue, audio_stop_event)
+    app = VisualizerApp(sr, stop_event, waveform_queue, audio_stop_event, message_bus)
     app.widget.show()
     app.widget.raise_()
     app.widget.activateWindow()
@@ -76,7 +78,8 @@ def start_visualizer_process(
     sr: int,
     stop_event: Optional[Any] = None,
     waveform_queue: Optional[Queue] = None,
-    audio_stop_event: Optional[Any] = None
+    audio_stop_event: Optional[Any] = None,
+    message_bus: MessageBus = None
 ) -> Tuple[Process, Queue]:
     """
     Start the visualizer process in a separate process.
@@ -100,7 +103,7 @@ def start_visualizer_process(
 
     p = Process(
         target=visualizer_process_with_ready,
-        args=(sr, stop_event, waveform_queue, audio_stop_event, window_ready)
+        args=(sr, stop_event, waveform_queue, audio_stop_event, window_ready, message_bus)
     )
     p.start()
 

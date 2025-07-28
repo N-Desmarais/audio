@@ -1,0 +1,5 @@
+from ast import Dict
+from visualizer.popup_widgets.amplifier_popup import AmplifierPopup
+from visualizer.popup_widgets.display_controls_popup import DisplayControlsPopup
+from visualizer.popup_widgets.reverb_popup import ReverbPopup
+

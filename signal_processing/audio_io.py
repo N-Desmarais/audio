@@ -1,13 +1,15 @@
 import logging
 import threading
 from typing import Any, List
+from signal_processing.audio_processor import AudioProcessor
 
 import numpy as np
 import sounddevice as sd  
-from scipy.io import wavfile  
+from scipy.io import wavfile
 
-BUFFER_BLOCKSIZE = 1024
+from message_bus import MessageBus  
 
+BUFFER_BLOCKSIZE = 4096
 
 class RingBuffer:
     """
@@ -84,7 +86,8 @@ def audio_passthrough(
     recorded_frames: List[np.ndarray],
     waveform_queue: Any,
     stop_event: threading.Event,
-    save_recording: bool = False
+    save_recording: bool = False,
+    message_bus: MessageBus = None
 ) -> None:
     """
     Pass audio from the input device to the output device in real time, optionally recording.
@@ -101,17 +104,19 @@ def audio_passthrough(
         save_recording (bool): Whether to save the recording.
     """
     ring = RingBuffer(BUFFER_BLOCKSIZE * 8, in_ch)
+    audio_processor =  AudioProcessor(stop_event=stop_event, message_bus=message_bus)
 
     def input_callback(indata: np.ndarray, _frames: int, _time: Any, status: Any) -> None:
         if stop_event.is_set():
             return
         if status:
             logging.warning(f"Input stream status: {status}")
+        processed = audio_processor.process_audio(indata)
         if save_recording:
-            recorded_frames.append(indata.copy())
-        mono = np.mean(indata, axis=1)
+            recorded_frames.append(processed.copy())
+        mono = np.mean(processed, axis=1)
         waveform_queue.put(mono)
-        ring.write(indata)
+        ring.write(processed)
 
     def output_callback(outdata: np.ndarray, frames: int, _time: Any, status: Any) -> None:
         if stop_event.is_set():
@@ -146,7 +151,8 @@ def audio_record(
     in_ch: int,
     recorded_frames: List[np.ndarray],
     waveform_queue: Any,
-    stop_event: threading.Event
+    stop_event: threading.Event,
+    message_bus: MessageBus
 ) -> None:
     """
     Record audio from the input device and send waveform data to the queue.
@@ -159,14 +165,19 @@ def audio_record(
         waveform_queue (Any): Queue for waveform data.
         stop_event (threading.Event): Event to signal stop.
     """
+    
+    audio_processor =  AudioProcessor(stop_event=stop_event, message_bus=message_bus)
+    
     def input_callback(indata: np.ndarray, frames: int, time: Any, status: Any) -> None:
         if status:
             logging.warning(f"Input stream status: {status}")
         if stop_event.is_set():
             return
-        recorded_frames.append(indata.copy())
-        mono = np.mean(indata, axis=1)
+        processed = audio_processor.process_audio(indata)
+        recorded_frames.append(processed.copy())
+        mono = np.mean(processed, axis=1)
         waveform_queue.put(mono)
+
 
     with sd.InputStream(
         device=input_idx,
@@ -184,7 +195,8 @@ def audio_playback(
     out_ch: int,
     wav_path: str,
     stop_event: threading.Event,
-    waveform_queue: Any
+    waveform_queue: Any,
+    message_bus: MessageBus
 ) -> None:
     """
     Play back a WAV file to the output device and send waveform data to the queue.
@@ -196,6 +208,9 @@ def audio_playback(
         stop_event (threading.Event): Event to signal stop.
         waveform_queue (Any): Queue for waveform data.
     """
+    
+    audio_processor =  AudioProcessor(stop_event=stop_event, message_bus=message_bus)
+    
     try:
         wav_sr, data = wavfile.read(wav_path)
         if data.dtype != np.float32:
@@ -222,7 +237,7 @@ def audio_playback(
             if status:
                 logging.warning(f"Output stream status: {status}")
             end = min(frame_index + frames, total_frames)
-            chunk = data[frame_index:end]
+            chunk = audio_processor.process_audio(data[frame_index:end])
             out_len = end - frame_index
             if out_len < frames:
                 outdata[:out_len] = chunk

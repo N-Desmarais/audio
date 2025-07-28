@@ -1,20 +1,17 @@
 import logging
 import multiprocessing
-import os
 import signal
-import sys
 import threading
-import time
-from pathlib import Path
 from typing import Any, List, Optional
 
 import numpy as np
 from scipy.io import wavfile
 
 from arg_parser import get_config
-from audio_processing import audio_passthrough, audio_playback, audio_record
+from signal_processing.audio_io import audio_passthrough, audio_playback, audio_record
 from file_utils import save_recording
 from visualizer.visualizer import start_visualizer_process
+from message_bus import MessageBus
 
 def setup_logging(level: str) -> None:
     """
@@ -62,7 +59,8 @@ def start_audio_thread(
     args: Any,
     recorded_frames: List[np.ndarray],
     vis_waveform_queue: Any,
-    audio_stop_event: threading.Event
+    audio_stop_event: threading.Event,
+    message_bus: MessageBus
 ) -> Optional[threading.Thread]:
     """
     Start the audio processing thread for the selected mode.
@@ -80,18 +78,27 @@ def start_audio_thread(
         return threading.Thread(
             target=audio_passthrough,
             args=(args.in_idx, args.out_idx, args.sr, args.in_ch, args.out_ch,
-                  recorded_frames, vis_waveform_queue, audio_stop_event)
+                  recorded_frames, vis_waveform_queue, audio_stop_event),
+            kwargs={
+                "message_bus": message_bus
+            }
         )
     elif args.mode == "record":
         return threading.Thread(
             target=audio_record,
             args=(args.in_idx, args.sr, args.in_ch,
-                  recorded_frames, vis_waveform_queue, audio_stop_event)
+                  recorded_frames, vis_waveform_queue, audio_stop_event),
+            kwargs={
+                "message_bus": message_bus
+            }
         )
     elif args.mode == "playback":
         return threading.Thread(
             target=audio_playback,
-            args=(args.out_idx, args.out_ch, args.wav_path, audio_stop_event, vis_waveform_queue)
+            args=(args.out_idx, args.out_ch, args.wav_path, audio_stop_event, vis_waveform_queue),
+            kwargs={
+                "message_bus": message_bus
+            }
         )
     else:
         logging.error(f"Unknown mode: {args.mode}")
@@ -144,13 +151,18 @@ def cleanup(
         vis_waveform_queue.join_thread()
     except Exception as e:
         logging.debug(f"Error closing visualizer queue: {e}")
-    if args.save_recording and args.mode in ("record", "passthrough"):
+    if  "record" or (args.save_recording and args.mode == "passthrough"):
         save_recording(args.sr, recorded_frames)
 
 def main() -> None:
     """
     Main entry point for the audio visualizer and recorder application.
     """
+    # Ensure the global message queue is created in the main process
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    message_bus = MessageBus(queue)
+    
     args = get_config()
     setup_logging(getattr(args, "log_level", "INFO"))
 
@@ -166,13 +178,14 @@ def main() -> None:
         sr=visualizer_sr,
         stop_event=vis_stop_event,
         waveform_queue=None,
-        audio_stop_event=audio_stop_event
+        audio_stop_event=audio_stop_event,
+        message_bus=message_bus
     )
 
     setup_signal_handlers(audio_stop_event, vis_stop_event)
 
     recorded_frames = []
-    audio_thread = start_audio_thread(args, recorded_frames, vis_waveform_queue, audio_stop_event)
+    audio_thread = start_audio_thread(args, recorded_frames, vis_waveform_queue, audio_stop_event, message_bus)
     if audio_thread is None:
         return
 
@@ -185,3 +198,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+    

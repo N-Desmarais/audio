@@ -3,10 +3,11 @@ import queue
 from typing import Any, Optional
 
 from pyqtgraph.Qt import QtCore, QtWidgets  
+from message_bus import MessageBus
 from visualizer.layout import VisualizerLayout
-from visualizer.spectrogram_graph import SpectrogramGraph
-from visualizer.waveform_graph import WaveformGraph
-from visualizer.numeric_control import NumericControl
+from visualizer.graphing_widgets.spectrogram_graph import SpectrogramGraph
+from visualizer.graphing_widgets.waveform_graph import WaveformGraph
+from visualizer.common_widgets.numeric_control import NumericControl
 
 class VisualizerGUI(QtWidgets.QWidget):
     """
@@ -18,7 +19,8 @@ class VisualizerGUI(QtWidgets.QWidget):
         stop_event: Any,
         waveform_queue: Any,
         audio_stop_event: Optional[Any] = None,
-        parent: Optional[Any] = None
+        parent: Optional[Any] = None,
+        message_bus: MessageBus = None
     ) -> None:
         """
         Initialize the main visualizer GUI widget.
@@ -31,6 +33,7 @@ class VisualizerGUI(QtWidgets.QWidget):
             parent (Optional[Any]): The parent widget.
         """
         super().__init__(parent)
+        self.setObjectName("GUI")
         self.samplerate = samplerate
         self.stop_event = stop_event
         self.audio_stop_event = audio_stop_event
@@ -38,11 +41,10 @@ class VisualizerGUI(QtWidgets.QWidget):
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         
-        self.vis_layout = VisualizerLayout(parent=self)
+        self.vis_layout = VisualizerLayout(parent=self, message_bus=message_bus)
         self.setLayout(QtWidgets.QHBoxLayout())
         self.layout().addWidget(self.vis_layout)
 
-        self.ymode = False
         self.buffer_seconds = 0.5
         self.plot_buffer = np.zeros(int(self.samplerate * self.buffer_seconds), dtype=np.float32)
 
@@ -86,7 +88,7 @@ class VisualizerGUI(QtWidgets.QWidget):
         except queue.Empty:
             pass
         if updated:
-            self.vis_layout.waveform_graph.update(self.ymode, self.buffer_seconds, self.plot_buffer)
+            self.vis_layout.waveform_graph.update( self.buffer_seconds, self.plot_buffer)
             self.vis_layout.spectrogram_graph.update(chunk, self.buffer_seconds, self.samplerate)
 
     def check_stop(self) -> None:
