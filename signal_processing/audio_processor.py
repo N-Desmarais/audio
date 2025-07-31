@@ -15,7 +15,7 @@ class AudioProcessor():
         self.stop_event = stop_event
         
         self.reverb = ReverbPlugin()
-        self.amplifier = AmplifierPlugin
+        self.amplifier = AmplifierPlugin()
         
         self.do_reverb = False
         self.do_amplification = False
@@ -46,8 +46,8 @@ class AudioProcessor():
             if isinstance(message, AmplifierSettingsMessage):
                 with self.plugin_lock:
                     self.do_amplification = message.enabled
-                    self.amplifier.set_scale(message.scale)
                     self.amplifier.set_allow_clipping(message.allow_clipping)
+                    self.amplifier.set_scale(message.scale)
             
         
     def process_audio(self, input: np.ndarray):

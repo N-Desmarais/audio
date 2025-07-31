@@ -80,6 +80,7 @@ def start_audio_thread(
             args=(args.in_idx, args.out_idx, args.sr, args.in_ch, args.out_ch,
                   recorded_frames, vis_waveform_queue, audio_stop_event),
             kwargs={
+                "save_recording": args.save_recording,
                 "message_bus": message_bus
             }
         )

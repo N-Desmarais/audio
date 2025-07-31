@@ -133,13 +133,17 @@ def audio_passthrough(
         channels=in_ch,
         samplerate=sr,
         blocksize=BUFFER_BLOCKSIZE,
-        callback=input_callback
+        callback=input_callback,
+        latency='low'
+        
     ), sd.OutputStream(
         device=output_idx,
         channels=out_ch,
         samplerate=sr,
         blocksize=BUFFER_BLOCKSIZE,
-        callback=output_callback
+        callback=output_callback,
+        latency='low'
+        
     ):
         while not stop_event.is_set():
             sd.sleep(100)
@@ -184,7 +188,8 @@ def audio_record(
         channels=in_ch,
         samplerate=sr,
         blocksize=BUFFER_BLOCKSIZE,
-        callback=input_callback
+        callback=input_callback,
+        latency='low'
     ):
         while not stop_event.is_set():
             sd.sleep(100)
@@ -255,7 +260,8 @@ def audio_playback(
             channels=out_ch,
             samplerate=wav_sr,  # Use the WAV file's sample rate
             blocksize=BUFFER_BLOCKSIZE,
-            callback=output_callback
+            callback=output_callback,
+            latency='low'
         ):
             while not stop_event.is_set() and frame_index < total_frames:
                 sd.sleep(100)

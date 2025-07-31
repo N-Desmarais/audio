@@ -1,10 +1,8 @@
-from typing import Any
+from typing import Any, Dict
 
 from pyqtgraph.Qt import QtWidgets  
 
-from visualizer.popup_widgets.reverb_popup import ReverbPopup
-from visualizer.popup_widgets.display_controls_popup import DisplayControlsPopup
-from visualizer.popup_widgets.amplifier_popup import AmplifierPopup
+from visualizer.popup_widgets.all_popups import ALL_POPUPS
 from message_bus import MessageBus
 
 class ControlPanel(QtWidgets.QWidget):
@@ -33,46 +31,19 @@ class ControlPanel(QtWidgets.QWidget):
         main_layout.addLayout(exit_row)
         main_layout.addStretch(1)
         
-        # --- Display Controls Button (opens popup) ---
-        self.display_controls_button = QtWidgets.QPushButton("Display Controls")
-        self.display_controls_button.clicked.connect(self.open_display_controls_popup)
-        main_layout.addWidget(self.display_controls_button)
+        # Temp menu before plugin chains are added
+        self.popups: Dict[str, Any] = {}
+        for name, popup in ALL_POPUPS.items():
+            
+            def open_popup():
+                if name not in self.popups.keys():
+                    self.popups[name] = popup(self, message_bus=self.message_bus)
+                self.popups[name].show()
+                self.popups[name].raise_()
+                self.popups[name].activateWindow()
+            
+            button = QtWidgets.QPushButton(name)
+            button.clicked.connect(open_popup)
+            main_layout.addWidget(button)
+        
 
-        # --- Reverb Button (opens popup) ---
-        self.reverb_button = QtWidgets.QPushButton("Reverb")
-        self.reverb_button.clicked.connect(self.open_reverb_popup)
-        main_layout.addWidget(self.reverb_button)
-
-        # --- Reverb popup instance ---
-        self.reverb_popup = None
-        self.display_controls_popup = None
-        self.amplifier_popup = None
-
-        # --- Amplifier Button (opens popup) ---
-        self.amplifier_button = QtWidgets.QPushButton("Amplifier")
-        self.amplifier_button.clicked.connect(self.open_amplifier_popup)
-        main_layout.addWidget(self.amplifier_button)
-
-    def open_reverb_popup(self):
-        if self.reverb_popup is None:
-            self.reverb_popup = ReverbPopup(self, message_bus=self.message_bus)
-        self.reverb_popup.show()
-        self.reverb_popup.raise_()
-        self.reverb_popup.activateWindow()
-
-    def open_display_controls_popup(self):
-        if self.display_controls_popup is None:
-            self.display_controls_popup = DisplayControlsPopup(
-                parent=self,
-                gui=self.parent().parent()
-            )
-        self.display_controls_popup.show()
-        self.display_controls_popup.raise_()
-        self.display_controls_popup.activateWindow()
-
-    def open_amplifier_popup(self):
-        if self.amplifier_popup is None:
-            self.amplifier_popup = AmplifierPopup(self, message_bus=self.message_bus)
-        self.amplifier_popup.show()
-        self.amplifier_popup.raise_()
-        self.amplifier_popup.activateWindow()

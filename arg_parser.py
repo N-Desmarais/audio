@@ -1,20 +1,35 @@
 import argparse
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple, Dict
 
 import sounddevice as sd  
 
-def list_devices(kind: str = 'input') -> None:
+def get_devices(hostapi: str = None):
+    res = []
+    query =  enumerate(sd.query_devices())
+    for idx, item in query:
+        res.append(item)
+    
+    if hostapi is None:
+        return res
+    
+    return filter(lambda x: x['hostapi'] == hostapi, res)
+
+def list_devices(kind: str = 'input', hostapi: str = None) -> None:
     """
     Print a list of available audio devices of the specified kind.
 
     Parameters:
         kind (str): Either 'input' or 'output' to specify device type.
     """
-    print(f"\nAvailable {kind} devices:")
-    for i, dev in enumerate(sd.query_devices()):
+    list = get_devices(hostapi)
+
+    print(f"{kind.capitalize()} Devices: ")
+    for dev in list:
         if (kind == 'input' and dev['max_input_channels'] > 0) or \
            (kind == 'output' and dev['max_output_channels'] > 0):
-            print(f"{i}: {dev['name']} ({dev['default_samplerate']} Hz)")
+            print(f"{dev['index']}: {dev['name']} ({dev['default_samplerate']} Hz)")
+    print('') # newline
+            
 
 def select_device(idx: Optional[int] = None, kind: str = 'input') -> Tuple[int, int, int]:
     """
@@ -29,7 +44,7 @@ def select_device(idx: Optional[int] = None, kind: str = 'input') -> Tuple[int, 
     """
     if idx is None:
         list_devices(kind)
-        idx = int(input(f"Select {kind} device index: "))
+        idx = int(input(f"Select {kind} device index: host:API "))
     info = sd.query_devices(idx)
     ch = info['max_input_channels'] if kind == 'input' else info['max_output_channels']
     sr = int(info['default_samplerate'])
@@ -63,8 +78,8 @@ def get_config() -> argparse.Namespace:
     args = parser.parse_args()
 
     if args.list_devices:
-        list_devices('input')
-        list_devices('output')
+        list_devices('input',0)
+        list_devices('output',0)
         exit(0)
 
     # Device selection logic based on mode

@@ -13,13 +13,5 @@ class AmplifierPlugin:
     def set_scale(self, scale: float):
         self.scale = scale
 
-    def set_enabled(self, enabled: bool):
-        self.enabled = enabled
-
     def set_allow_clipping(self, allow_clipping: bool):
         self.allow_clipping = allow_clipping
-
-    def reset(self):
-        self.scale = 1.0
-        self.enabled = True
-        self.allow_clipping = True

@@ -11,10 +11,10 @@ class AmplifierPopup(PopupBase):
         # Amplifier scale control
         self.scale_control = NumericControl(
             min_value=.01,
-            max_value=10.0,
+            max_value=100,
             decimals=2,
             initial_value=1.0,
-            slider_steps=1000,
+            slider_steps=10000,
             slider_change_func=self.amplifier_event,
             input_change_func=self.amplifier_event
         )
@@ -24,21 +24,21 @@ class AmplifierPopup(PopupBase):
         # Enable/Disable toggle
         self.enable_button = QtWidgets.QPushButton("Enable Amplifier")
         self.enable_button.setCheckable(True)
-        self.enable_button.setChecked(True)
+        self.enable_button.setChecked(False)
         self.enable_button.toggled.connect(self.amplifier_event)
         self.layout.insertWidget(self.layout.count() - 2, self.enable_button)
 
         # Allow/Disallow Clipping toggle
-        self.allow_clipping_button = QtWidgets.QPushButton("Allow Clipping")
+        self.allow_clipping_button = QtWidgets.QPushButton("Disallow Clipping")
         self.allow_clipping_button.setCheckable(True)
-        self.allow_clipping_button.setChecked(True)
+        self.allow_clipping_button.setChecked(False)
         self.allow_clipping_button.toggled.connect(self.amplifier_event)
         self.layout.insertWidget(self.layout.count() - 2, self.allow_clipping_button)
 
     def amplifier_event(self, _e=None):
         scale = self.scale_control.get_value()
         enabled = self.enable_button.isChecked()
-        allow_clipping = self.allow_clipping_button.isChecked()
+        allow_clipping = not self.allow_clipping_button.isChecked()
         if enabled:
             self.enable_button.setText("Disable Amplifier")
         else:

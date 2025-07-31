@@ -16,7 +16,7 @@ class WaveformGraph:
             pen (str): The color of the pen used to draw the waveform.
         """
         self.plot_widget = pg.PlotWidget(parent=parent)
-        self.plot_widget.setYRange(-1.0, 1.0)
+        self.plot_widget.setYRange(-.5, .5)
         self.plot_widget.showGrid(x=True, y=True)
         self.plot_widget.setMouseEnabled(x=False, y=False)
         self.pen = pen
